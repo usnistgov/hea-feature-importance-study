@@ -6,6 +6,9 @@ the feature importances based on their rank order.  The Magpie identity of the f
 carried over here, feature 105 is the Random Feature.
 """
 
+import matplotlib.pyplot as plt
+import pandas as pd
+
 n_components = 5
 target = "Multiphase"
 
