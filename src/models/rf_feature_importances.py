@@ -17,7 +17,7 @@ if __name__ == "__main__":
     df, X = load_hea_dataset(subset="train")
     y = df[target_key].values
 
-    df_acta, X_acta = load_hea_dataset(subset="train")
+    df_acta, X_acta = load_hea_dataset(subset="test")
     y_acta = df_acta[target_key].values
 
     # dict with keys == number of components, dataframe of shape (reps, components)

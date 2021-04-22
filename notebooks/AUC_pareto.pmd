@@ -1,0 +1,247 @@
+```python
+import pandas as pd
+import pymoo
+from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
+from pymoo.util.nds.fast_non_dominated_sort import fast_non_dominated_sort
+
+# task = "FCC"
+task = "Multiphase"
+if task == "Multiphase":
+    df = pd.read_csv("data/CV_gridsearch_2021-01-29.csv", index_col=0)
+    # df = pd.read_csv("data/Multiphase Remove Replicates DataFrame for Brian.csv", index_col=0)
+elif task == "FCC":
+    df = pd.read_csv("data/CV_gridsearch_FCC_2021-02-02.csv", index_col=0)
+```
+
+```python
+df.head()
+```
+
+```python
+fig, axes = plt.subplots(ncols=3, figsize=(12,4), sharey=True)
+hyperparams = ["max_depth", "min_samples_leaf", "max_features"]
+
+for ax, hp in zip(axes, hyperparams):
+    ax.scatter(np.log2(df[hp]), df["val AUC"], c=df["random_feature_rank"])
+    ax.set(xlabel=hp)
+
+axes[0].set(ylabel="val AUC")
+plt.tight_layout()
+```
+
+
+```python
+fig, axes = plt.subplots(ncols=3, figsize=(12,4), sharey=True)
+hyperparams = ["max_depth", "min_samples_leaf", "max_features"]
+
+for ax, hp in zip(axes, hyperparams):
+    ax.scatter(np.log2(df[hp]), df["random_feature_rank"], c=df["val AUC"])
+    ax.set(xlabel=f"log2 {hp}")
+
+axes[0].set(ylabel="random feature rank")
+plt.tight_layout()
+```
+
+```python
+from scipy.spatial import ConvexHull, convex_hull_plot_2d
+X = df.loc[:,("train_AUC", "val AUC")].values
+V = (X - X.mean(0))/ (X.max(0) - X.min(0))
+nds = NonDominatedSorting().do(-V, epsilon=0.0, only_non_dominated_front=False)
+# for idx in range(2):
+#     plt.scatter(X[nds[idx]][:,0], X[nds[idx]][:,1], color="r", zorder=100)
+
+# hull = ConvexHull(X)
+#
+# for simplex in hull.simplices:
+#     plt.plot(X[simplex, 0], X[simplex, 1], 'k-')
+
+plt.scatter(df["train_AUC"], df["val AUC"], c=df["random_feature_rank"])
+plt.colorbar(label="random feature rank")
+plt.plot((0,1), (0,1), linestyle="--", color="k", label="parity")
+# plt.xlim(0.7, 1.0)
+# plt.ylim(0.6, 0.8)
+
+plt.xlim(0.7, 1.0)
+plt.ylim(0.7, 1.0)
+
+plt.xlabel("train AUC")
+plt.ylabel("val AUC")
+plt.legend(loc="lower right")
+plt.show()
+```
+
+```python
+
+X = df.loc[:,("train_AUC", "val AUC")].values
+
+nds = fast_non_dominated_sort(X)
+```
+
+```python
+df.head()
+X = df.loc[:,("val AUC", "random_feature_rank")].values
+nds = NonDominatedSorting().do(-X, epsilon=0.05, only_non_dominated_front=False)
+
+for idx in range(10):
+    plt.scatter(X[nds[idx]][:,0], X[nds[idx]][:,1], color="r", zorder=100)
+
+plt.scatter(df["val AUC"], df["random_feature_rank"], c=df["train_AUC"]-df["val AUC"])
+plt.colorbar(label="AUC gap")
+plt.ylabel("random feature rank")
+plt.xlabel("val AUC")
+plt.show()
+```
+
+## checking stuff...
+```python
+AUC_gap = df["train_AUC"].values-df["val AUC"].values
+X = np.c_[AUC_gap, -df["val AUC"].values]
+V = (X - X.mean(0))/ (X.max(0) - X.min(0))
+
+nds = NonDominatedSorting().do(V, epsilon=0.0, only_non_dominated_front=False)
+plt.scatter(X[nds[0]][:,0], -X[nds[0]][:,1], edgecolors="r", c="none", zorder=100)
+plt.scatter(X[nds[1]][:,0], -X[nds[1]][:,1], edgecolors="r", c="none", zorder=100)
+plt.scatter(X[nds[2]][:,0], -X[nds[2]][:,1], edgecolors="r", c="none", zorder=100)
+
+# sort the actual pareto frontier for drawing
+pf = pd.DataFrame(X[nds[0]])
+pf = pf.sort_values(by=0)
+plt.plot(pf[0], -pf[1], color="k", linestyle="--")
+# plt.plot(X[nds[0]][:,0], -X[nds[0]][:,1])
+
+
+plt.scatter(AUC_gap, df["val AUC"], c=df["random_feature_rank"])
+plt.colorbar(label="random feature rank")
+plt.xlabel("AUC gap")
+plt.ylabel("val AUC")
+```
+
+```python
+df["max_depth"].max()
+sel = np.r_[nds[0], nds[1], nds[2]]
+df.iloc[sel].sort_values("random_feature_rank")
+```
+
+
+```python
+sel = np.r_[nds[0], nds[1], nds[2]]
+
+plt.scatter(df["val AUC"].iloc[sel], df["random_feature_rank"].iloc[sel], c=df["val AUC"].iloc[sel])
+plt.colorbar(label="AUC")
+plt.xlabel("AUC")
+plt.ylabel("random feature rank")
+```
+
+
+```python
+task = "FCC"
+# task = "Multiphase"
+if task == "Multiphase":
+    # df = pd.read_csv("data/CV_gridsearch_2021-01-29.csv", index_col=0)
+    df = pd.read_csv("data/Multiphase Remove Replicates DataFrame for Brian.csv", index_col=0)
+elif task == "FCC":
+    df = pd.read_csv("data/CV_gridsearch_FCC_2021-02-02.csv", index_col=0)
+
+AUC_gap = df["train_AUC"].values-df["val AUC"].values
+X = np.c_[AUC_gap, -df["val AUC"].values]
+V = (X - X.mean(0))/ (X.max(0) - X.min(0))
+
+nds = NonDominatedSorting().do(V, epsilon=0.0, only_non_dominated_front=False)
+sel = nds[0]
+
+fig, axes = plt.subplots(ncols=3, figsize=(16,4), sharey=True)
+plt.sca(axes[1])
+# plt.scatter(X[nds[0]][:,0], -X[nds[0]][:,1], edgecolors="r", c="none", zorder=100)
+# plt.scatter(X[nds[1]][:,0], -X[nds[1]][:,1], edgecolors="r", c="none", zorder=100)
+# plt.scatter(X[nds[2]][:,0], -X[nds[2]][:,1], edgecolors="r", c="none", zorder=100)
+
+# sort the actual pareto frontier for drawing
+pf = pd.DataFrame(X[nds[0]])
+pf = pf.sort_values(by=0)
+plt.plot(pf[0], -pf[1], color="r", linestyle="--")
+# plt.plot(X[nds[0]][:,0], -X[nds[0]][:,1])
+
+plt.scatter(AUC_gap, df["val AUC"], c=df["random_feature_rank"])
+plt.scatter(AUC_gap[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
+plt.colorbar(label="random feature rank")
+plt.xlabel(r"$AUC_{train} - AUC_{val}$")
+
+plt.sca(axes[0])
+plt.scatter(df["train_AUC"], df["val AUC"], c=df["random_feature_rank"])
+plt.colorbar(label="random feature rank")
+plt.scatter(df["train_AUC"].iloc[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
+plt.plot((0,1), (0,1), linestyle="--", color="k", label="parity")
+
+if task == "FCC":
+    plt.xlim(0.8, 1.0)
+    plt.ylim(0.8, 0.95)
+elif task == "Multiphase":
+    plt.xlim(0.7, 1.0)
+    plt.ylim(0.64, 0.8)
+
+
+plt.xlabel(r"$AUC_{train}$")
+plt.ylabel(r"$AUC_{val}$")
+plt.legend(loc="lower right")
+
+pf = pd.DataFrame(df.loc[:,("train_AUC", "val AUC")].values[nds[0]])
+pf = pf.sort_values(by=0)
+plt.plot(pf[0], pf[1], color="r", linestyle="--")
+
+plt.sca(axes[2])
+sel = nds[0]
+# sel = np.r_[nds[0], nds[1]]
+# sel = np.r_[nds[0], nds[1], nds[2]]
+
+# plt.scatter(df["random_feature_rank"], df["val AUC"], c=AUC_gap, alpha=0.2)
+
+plt.scatter(df["random_feature_rank"], df["val AUC"], c=AUC_gap)
+plt.scatter(df["random_feature_rank"].iloc[sel], df["val AUC"].iloc[sel], c=AUC_gap[sel], edgecolors
+="k")
+plt.colorbar(label=r"$AUC_{train} - AUC_{val}$")
+plt.xlabel("random feature rank")
+
+plt.tight_layout()
+plt.savefig(f"AUC_gap_figure_{task}.tiff", bbox_inches="tight", dpi=600)
+plt.show()
+```
+```python
+
+plt.show()
+
+```
+
+
+```python
+s = df["val AUC"] > 0.7
+plt.scatter(AUC_gap[s], df["random_feature_rank"][s], c=df["val AUC"][s])
+plt.colorbar(label="AUC")
+plt.xlabel("AUC gap")
+plt.ylabel("random feature rank")
+```
+
+```python
+df.iloc[sel].sort_values(by="train-val AUC", ascending=False)
+```
+
+```python
+plt.scatter(df["train_AUC"], df["val AUC"], c=df["random_feature_rank"])
+plt.scatter(df["train_AUC"].iloc[sel], df["val AUC"].iloc[sel], c="r")
+plt.colorbar(label="random feature rank")
+plt.plot((0,1), (0,1), linestyle="--", color="k", label="parity")
+plt.xlim(0.7, 1.0)
+# plt.ylim(0.6, 0.8)
+plt.ylim(0.7, 1.0)
+plt.xlabel("train AUC")
+plt.ylabel("val AUC")
+plt.legend(loc="lower right")
+plt.show()
+```
+
+```python
+plt.scatter(df["train_AUC"]-df["val AUC"], df["random_feature_rank"], c=df["val AUC"])
+plt.colorbar(label="val AUC")
+plt.xlabel("AUC gap")
+plt.ylabel("random feature rank")
+plt.show()
+```
