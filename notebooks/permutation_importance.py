@@ -2,6 +2,7 @@ import streamlit as st
 
 import re
 from pathlib import Path
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -66,7 +67,7 @@ def load_results(path: Path):
     stats = r.iloc[replicates:]
     runs = r.iloc[:replicates].reset_index(drop=True)
 
-    rank_file = str(results[0]).replace("AUC", "Feature")
+    rank_file = str(path).replace("AUC", "Feature")
     r = pd.read_csv(rank_file, index_col=0)
     r = r.T
     importance_stats = r.iloc[replicates:]
@@ -82,24 +83,37 @@ runs
 
 st.header("permutation importance results")
 importance
-st.header("ok, now what.")
+st.header("train/val performance vs random feature rank")
 
-fig, ax = plt.subplots()
-for r in results[:10]:
-    runs, importance = load_results(r)
-    ax.scatter(runs.validation_precision, runs.validation_recall)
-st.pyplot(fig)
-
+clip = st.sidebar.selectbox("clip?", ["no", "yes"])
 
 perf = []
+rf_rank = []
 for (idx, row), r_path in zip(df.iterrows(), results):
     runs, importance = load_results(r_path)
     mean, std = runs.mean(axis=0), runs.std(axis=0)
     perf.append(mean.to_dict())
+
+    if clip:
+        importance = np.clip(importance, 0, np.inf)
+
+    # get feature rankings by sorting negative values
+    # to rank highest feature first
+    rank = np.argsort(-importance, axis=1)
+    rf_rank.append(rank.iloc[:, -1].values)
+
 perf = pd.DataFrame(perf)
+rf_rank = pd.DataFrame(rf_rank)
+
 
 fig, ax = plt.subplots()
-ax.scatter(df.max_depth, df.min_leaf_sample, c=perf.train_precision)
+p = ax.scatter(perf.train_NPCA_auc, perf.val_NPCA_auc, c=rf_rank.mean(axis=1))
+plt.colorbar(p)
+plt.xlabel("train AUC")
+plt.ylabel("val AUC")
+plt.tight_layout()
+
+# ax.scatter(df.max_depth, df.min_leaf_sample, c=perf.train_precision)
 st.pyplot(fig)
 
 # perf.shape
