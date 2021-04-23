@@ -86,6 +86,7 @@ importance
 st.header("train/val performance vs random feature rank")
 
 clip = st.sidebar.selectbox("clip?", ["no", "yes"])
+stat = st.sidebar.selectbox("statistic", ["mean", "std", "min", "max"])
 
 perf = []
 rf_rank = []
@@ -107,7 +108,14 @@ rf_rank = pd.DataFrame(rf_rank)
 
 
 fig, ax = plt.subplots()
-p = ax.scatter(perf.train_NPCA_auc, perf.val_NPCA_auc, c=rf_rank.mean(axis=1))
+c = {
+    "min": rf_rank.min(axis=1),
+    "max": rf_rank.max(axis=1),
+    "mean": rf_rank.mean(axis=1),
+    "std": rf_rank.std(axis=1),
+}[stat]
+
+p = ax.scatter(perf.train_NPCA_auc, perf.val_NPCA_auc, c=c)
 plt.colorbar(p)
 plt.xlabel("train AUC")
 plt.ylabel("val AUC")
