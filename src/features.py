@@ -34,9 +34,11 @@ def compute_composition_features(df: pd.DataFrame) -> tuple(pd.DataFrame, pd.Dat
     ]
     stats = ["mean", "avg_dev", "minimum", "maximum", "range"]
     magpie = featurizers.composition.ElementProperty("magpie", features, stats)
+    magpie.set_n_jobs(1)
 
     # parse compositions from formula strings
     comp = StrToComposition()
+    comp.set_n_jobs(1)
     df = comp.featurize_dataframe(df, "Formula")
 
     # get the chemical system (i.e. a tuple of constituent species in alphabetical order)

@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 import matplotlib.pyplot as plt
 
 replicates = 25
@@ -158,4 +159,25 @@ _rankdata = _rank.melt(var_name="run", value_name="RF Rank")
 fig, ax = plt.subplots(figsize=(16, 4))
 sns.boxplot(x="run", y="RF Rank", data=_rankdata)
 plt.plot(_rank.mean(axis=0), color="k")
+st.pyplot(fig)
+
+score = _rank / 105
+# for s in score:
+#     stats.beta
+
+st.write(score.shape)
+
+s = score.iloc[:, -5]
+pars = stats.beta.fit(s, floc=0, fscale=1)
+a, b, loc, scal = pars
+st.write(pars)
+rv = stats.beta(a, b)
+
+st.write(score.shape)
+fig, ax = plt.subplots(figsize=(16, 4))
+x = np.arange(0.001, 0.999, 0.001)
+# ax.plot(x, rv.pdf(x), "k-", lw=2, label="frozen pdf")
+ax.plot(x, stats.beta.pdf(x, a, b))
+st.write(rv.pdf(x))
+ax.hist(s)
 st.pyplot(fig)
