@@ -7,7 +7,9 @@ from matminer import featurizers
 from matminer.featurizers.conversions import StrToComposition
 
 
-def compute_composition_features(df: pd.DataFrame) -> tuple(pd.DataFrame, pd.DataFrame):
+def compute_composition_features(
+    df: pd.DataFrame, progress: bool = True
+) -> tuple(pd.DataFrame, pd.DataFrame):
     """ run standard magpie, but drop space group number... """
     features = [
         "Number",
@@ -39,14 +41,16 @@ def compute_composition_features(df: pd.DataFrame) -> tuple(pd.DataFrame, pd.Dat
     # parse compositions from formula strings
     comp = StrToComposition()
     comp.set_n_jobs(1)
-    df = comp.featurize_dataframe(df, "Formula")
+    df = comp.featurize_dataframe(df, "Formula", pbar=progress)
 
     # get the chemical system (i.e. a tuple of constituent species in alphabetical order)
-    df["system"] = df["composition"].apply(lambda x: tuple(sorted(x.as_dict().keys())))
+    df["system"] = df["composition"].apply(
+        lambda x: tuple(sorted(x.as_dict().keys()))
+    )
 
     # compute magpie featurization
     # assign to a throwaway dataframe, and slice out the feature columns
-    _df = magpie.featurize_dataframe(df, "composition")
+    _df = magpie.featurize_dataframe(df, "composition", pbar=progress)
     _df.head()
     features = _df.iloc[:, df.shape[1] :]
 

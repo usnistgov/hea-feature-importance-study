@@ -9,12 +9,12 @@ import src.features
 datafile = "data/HEA_database_additions.csv"
 
 
-def load_hea_dataset(subset="train"):
+def load_hea_dataset(subset="train", progress=True):
     """deciding what property to target, opening the datafile containing the training data, and pulling out the holdout set"""
 
     df = pd.read_csv(datafile)
 
-    df, X = src.features.compute_composition_features(df)
+    df, X = src.features.compute_composition_features(df, progress=progress)
 
     # split data by source
     id_acta = df["REFERENCE: doi"] == "10.1016/j.actamat.2019.06.032"
