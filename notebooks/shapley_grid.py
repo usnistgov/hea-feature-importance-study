@@ -15,7 +15,8 @@ def parse_filename(path: Path):
     e.g. "Multiphase_max_depth=3_min_samples_leaf=1_max_features=2.pkl"
     """
     settings = parse.parse(
-        "{}_max_depth={:d}_min_samples_leaf={:d}_max_features={:d}.pkl", path.name
+        "{}_max_depth={:d}_min_samples_leaf={:d}_max_features={:d}.pkl",
+        path.name,
     )
     keys = "target", "max_depth", "min_samples_leaf", "max_features"
     return dict(zip(keys, settings))
@@ -102,6 +103,9 @@ c = {
 }[stat]
 
 p = ax.scatter(perf.train_AUC, perf.val_AUC, c=c)
+lims = ax.get_ylim()
+plt.plot([0.65, 1.0], [0.65, 1.0])
+plt.ylim(*lims)
 plt.colorbar(p)
 plt.xlabel("train AUC")
 plt.ylabel("val AUC")

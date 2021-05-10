@@ -19,7 +19,11 @@ from sklearn.metrics import (
 )
 from tqdm import tqdm
 
-from src.data import load_hea_dataset, split_chemical_systems
+from src.data import (
+    load_citrine_dataset,
+    load_hea_dataset,
+    split_chemical_systems,
+)
 from src.features import randcat
 
 app = typer.Typer(help="Random forest classification script.")
@@ -144,11 +148,13 @@ def cv(
     if progress:
         print(target_key)
 
-    df, X = load_hea_dataset(subset="train", progress=progress)
+    # df, X = load_hea_dataset(subset="train", progress=progress)
+    df, X = load_citrine_dataset(subset="train", progress=progress)
     y = df[target_key].values
     data = Dataset(X, y)
 
-    df_acta, X_acta = load_hea_dataset(subset="test", progress=progress)
+    # df_acta, X_acta = load_hea_dataset(subset="test", progress=progress)
+    df_acta, X_acta = load_citrine_dataset(subset="test", progress=progress)
     y_acta = df_acta[target_key].values
     testdata = Dataset(X_acta, y_acta)
 
