@@ -9,7 +9,8 @@ from scipy import stats
 import matplotlib.pyplot as plt
 
 replicates = 25
-results_dir = Path("data/permutation_importance")
+# results_dir = Path("data/permutation_importance")
+results_dir = Path("data/mg_permutation_importance")
 results = list(filter(lambda s: "AUC" in str(s), results_dir.glob("*.csv")))
 
 # st.write(list(map(str, results.glob("*.csv"))))
@@ -94,8 +95,10 @@ def load_results(path: Path):
 
 
 st.header("perf for single setting:")
-# runs, importance = load_results(results[0])
-f = "Drop_Replicates_Permutation_Importances_AUCMultiphase_5_max_depth_1_min_leaf_sample_10max_features.csv"
+runs, importance = load_results(results[0])
+# f = "Drop_Replicates_Permutation_Importances_AUCMultiphase_5_max_depth_1_min_leaf_sample_10max_features.csv"
+# f = "Drop_Replicates_Permutation_Importances_AUCMG_5_max_depth_1_min_leaf_sample_10max_features.csv"
+f = "Drop_Replicates_Permutation_Importances_AUCMG_15_max_depth_1_min_leaf_sample_10max_features.csv"
 rank_file = str(f).replace("AUC", "Feature")
 test = pd.read_csv(results_dir / rank_file, index_col=0)
 test = test.T
@@ -108,7 +111,38 @@ runs, importance = load_results(results_dir / f)
 st.header("permutation importance results")
 st.markdown("""each run has a 25 x n_features feature importance table. """)
 st.write("test", importance.shape)
-importance
+importance.T
+
+i = importance.iloc[0].values
+st.write(i)
+st.write(np.argsort(-i))
+st.write(np.argsort(-i)[105])
+
+fig, ax = plt.subplots()
+# plt.plot(importance.iloc[:, 64])
+# plt.plot(np.sort(importance.iloc[0, :])[::-1])
+plt.plot(np.sort(importance.iloc[0, :])[::-1])
+plt.plot(-np.sort(-importance.iloc[0, :]))
+values = importance.iloc[0].values
+st.write(values.shape)
+order = np.argsort(-values)
+plt.plot(importance.iloc[0].values[order])
+plt.axhline(importance.iloc[0].values[64])
+plt.axhline(importance.iloc[0].values[105], color="r")
+# plt.axhline(0.0053)
+st.pyplot(fig)
+
+sorted_i = np.sort(importance.iloc[0, :].values)[::-1]
+st.write(sorted_i)
+st.write("hello")
+st.write(np.where(sorted_i == importance.iloc[0, -1]))
+rank = np.argsort(importance.iloc[0, :].values)[::-1].argsort()
+st.write(rank)
+
+# sort along feature dimension, then reverse along feature dimension,
+# then sort along feature dimension again to get ranking
+rrank = np.argsort(importance.values, axis=1)[:, ::-1].argsort(axis=1)
+st.write(rrank)
 
 st.header("check a favorite run")
 # get feature rankings by sorting negative values
@@ -116,7 +150,8 @@ st.header("check a favorite run")
 st.markdown("rank by sorting on negative importance values")
 rank = np.argsort(importance.values, axis=1)[:, ::-1].argsort(axis=1)
 st.write(rank.shape)
-rank
+rank.T
+
 
 st.write("averaging across runs:")
 st.write(rank.mean(axis=0))
