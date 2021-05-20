@@ -23,26 +23,44 @@ def parse_filename(path: Path):
 
 
 results_dir = Path("data/shapley_results")
+# results_dir = Path("data/shapley_results_v3")
 results = results_dir.glob("*.pkl")
 
-r = list(results)[0]
+r = st.sidebar.selectbox("run", list(results))
+# r = list(results)[0]
 
 st.write(parse_filename(r))
 
+st.write(f"results for run {r}")
 r = pd.read_pickle(r)
 r
 
-s = r.pop("shapley_importance")
+s = r.pop("shapley_val_importance")
+replicate_id = st.sidebar.slider("replicate_id", 0, len(s))
+run = s[replicate_id]
+# run = s[3]
+fig, ax = plt.subplots()
+plt.plot(np.sort(run)[::-1])
+plt.axhline(run[-1])
+st.pyplot(fig)
+
 # s = r.pop("impurity_importance")
 importance = np.vstack([row[:106] for row in s])
+st.write(f"importance {importance.shape}")
 st.write(importance)
-# for row in s:
-#     st.write(row.shape)
-# st.write(s.values)
-# st.write(np.vstack(s.values))
+
+shap_rank = stats.rankdata(-importance, axis=1, method="ordinal")
+st.write("rank")
+st.write(shap_rank)
+
 
 fig, ax = plt.subplots()
-plt.scatter(r.val_precision, r.val_recall)
+plt.scatter(
+    r.val_precision,
+    r.val_recall,
+    c=stats.rankdata(-importance, axis=-1)[:, -1],
+)
+plt.colorbar()
 st.pyplot(fig)
 
 st.header("train/val performance vs random feature rank")
@@ -58,28 +76,33 @@ for r in results_dir.glob("*.pkl"):
     pars.append(parse_filename(r))
     runs = pd.read_pickle(r)
     impurity_importance = runs.pop("impurity_importance")
-    shapley_importance = runs.pop("shapley_importance")
+    # shapley_importance = np.vstack(runs.pop("shapley_train_importance"))
+    shapley_importance = np.vstack(runs.pop("shapley_val_importance"))
 
     mean, std = runs.mean(axis=0), runs.std(axis=0)
     perf.append(mean.to_dict())
 
-    # get feature rankings by sorting negative values
+    # get feature rankings
     # to rank highest feature first
+    # s_rank = np.argsort(np.vstack(shapley_importance.values), axis=0)[
+    #     :, ::-1
+    # ].argsort(axis=0)
 
-    # deal with RF growing bug...
-    # s_importance = np.vstack([row[:106] for row in shapley_importance])
-    # s_rank = np.argsort(-s_importance, axis=1)
-    # rf_rank["shapley"].append(s_rank[:, -1])
-    # s_rank = np.argsort(-shapley_importance.values, axis=1)
-    s_rank = np.argsort(-np.vstack(shapley_importance.values), axis=0)
-    rf_rank["shapley"].append(s_rank[-1])
+    # s_rank = s_rank.max(axis=1)[:, np.newaxis] - s_rank
+    s_rank = stats.rankdata(-shapley_importance, axis=1, method="ordinal")
+    rf_rank["shapley"].append(s_rank[:, -1])
 
-    # i_importance = np.vstack([row[:106] for row in impurity_importance])
-    # i_rank = np.argsort(-i_importance, axis=0)
-    # rf_rank["impurity"].append(i_rank[-1])
-    i_rank = np.argsort(-np.vstack(impurity_importance.values), axis=0)
-    rf_rank["impurity"].append(i_rank[-1])
+    # i_rank = np.argsort(np.vstack(impurity_importance.values), axis=0)[
+    #     :, ::-1
+    # ].argsort(axis=0)
+    i_rank = stats.rankdata(np.vstack(impurity_importance.values), axis=1)
+    i_rank = i_rank.max(axis=1)[:, np.newaxis] - i_rank
+    rf_rank["impurity"].append(i_rank[:, -1])
 
+st.write("shapley", shapley_importance)
+st.write("rank shape", s_rank.shape)
+st.write("rank", s_rank)
+st.write("rf rank", s_rank[:, -1])
 
 df = pd.DataFrame(pars)
 perf = pd.DataFrame(perf)

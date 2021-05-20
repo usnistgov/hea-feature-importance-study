@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 from sklearn import ensemble, pipeline, preprocessing
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import roc_curve
@@ -15,14 +16,19 @@ import matplotlib.pyplot as plt
 import sys
 
 sys.path.append(".")
-from src.data import load_hea_dataset, split_chemical_systems
+from src.data import (
+    load_hea_dataset,
+    load_citrine_dataset,
+    split_chemical_systems,
+)
 from src.features import randcat
 
 target = "Multiphase"
 target_key = f"PROPERTY: {target}"
 n_random_features = 1
 
-df, X = load_hea_dataset(subset="train")
+# df, X = load_hea_dataset(subset="train")
+df, X = load_citrine_dataset(subset="none")
 y = df[target_key].values
 
 df_acta, X_acta = load_hea_dataset(subset="test")
@@ -31,13 +37,22 @@ y_acta = df_acta[target_key].values
 train, val = split_chemical_systems(df)
 Xrand = randcat(X, n_random_features=n_random_features)
 
+# predictor = ensemble.RandomForestClassifier(
+#     n_estimators=144,
+#     max_depth=30,
+#     min_samples_leaf=1,
+#     n_jobs=4,
+#     class_weight="balanced",
+# )
 predictor = ensemble.RandomForestClassifier(
     n_estimators=144,
-    max_depth=30,
-    min_samples_leaf=1,
     n_jobs=4,
+    max_depth=15,
+    min_samples_leaf=1,
+    max_features=10,
     class_weight="balanced",
 )
+
 
 model = pipeline.Pipeline(
     [
@@ -61,7 +76,9 @@ val_scores = model.predict_proba(Xrand[val])[:, 1]
 val_auc = roc_auc_score(y[val], val_scores)
 
 # The next two lines of code do not function properly for BCC
-holdout_scores = model.predict(randcat(X_acta, n_random_features=n_random_features))
+holdout_scores = model.predict(
+    randcat(X_acta, n_random_features=n_random_features)
+)
 holdout_AUC = roc_auc_score(y_acta, holdout_scores)
 
 # ROC
@@ -112,14 +129,40 @@ plt.ylabel("impurity\nimportance")
 
 ax = plt.sca(axes[1])
 aggregated_shap = np.abs(shap_values.data[val]).mean(axis=0)
-plt.plot(np.sort(aggregated_shap)[::-1])
-plt.axhline(aggregated_shap[-1], linestyle="--", color="k")
+plt.plot(np.sort(aggregated_shap)[::-1], label="val")
+plt.axhline(aggregated_shap[-1], linestyle="--", color="b")
+
+rank = stats.rankdata(-aggregated_shap)[-1]
+st.write("SHAP rank (val): ", rank)
+plt.axvline(rank, color="b")
 
 aggregated_shap = np.abs(shap_values.data[train]).mean(axis=0)
-plt.plot(np.sort(aggregated_shap)[::-1])
-plt.axhline(aggregated_shap[-1], linestyle="--", color="r")
+rank = stats.rankdata(-aggregated_shap)[-1]
+st.write("SHAP rank (train): ", rank)
+plt.axvline(rank, color="orange")
+
+
+plt.plot(np.sort(aggregated_shap)[::-1], label="train")
+plt.axhline(aggregated_shap[-1], linestyle="--", color="orange")
+plt.legend()
 
 plt.xlabel("feature rank")
 plt.ylabel("avg |SHAP|")
 plt.tight_layout()
 st.pyplot(fig)
+
+
+fig, axes = plt.subplots()
+val_shap = np.abs(shap_values.data[val]).mean(axis=0)
+train_shap = np.abs(shap_values.data[train]).mean(axis=0)
+limits = min(min(train_shap), min(val_shap)), max(
+    max(train_shap), max(val_shap)
+)
+plt.plot(limits, limits)
+plt.scatter(train_shap, val_shap)
+plt.xlabel(r"$SHAP_{train}$")
+plt.ylabel(r"$SHAP_{val}$")
+st.pyplot(fig)
+
+# what happens to melting temperature over different chemical splits?
+# other importances?

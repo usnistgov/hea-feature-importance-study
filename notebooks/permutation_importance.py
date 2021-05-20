@@ -161,6 +161,10 @@ for (idx, row), r_path in zip(df.iterrows(), results):
 
 perf = pd.DataFrame(perf)
 rf_rank = pd.DataFrame(rf_rank)
+df_res = pd.concat((df, perf), axis=1)
+df_res["random_feature_rank"] = rf_rank.mean(axis=1)
+df_res.to_csv("data/hea_permutation_importance.csv")
+
 st.write(rf_rank.shape)
 st.write(rf_rank.mean(axis=1))
 

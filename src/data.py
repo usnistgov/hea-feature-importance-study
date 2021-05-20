@@ -45,11 +45,14 @@ def load_citrine_dataset(
 
     # split data by source
     id_acta = df["REFERENCE: doi"] == "10.1016/j.actamat.2019.06.032"
+    print("Acta: ", id_acta.values.sum())
 
     if subset == "train":
         selection = ~id_acta.values
     elif subset == "test":
         selection = id_acta.values
+    elif subset == "none":
+        selection = np.arange(df.shape[0])
 
     X = X.iloc[selection]
 

@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import shap
 import typer
+from scipy import stats
 from sklearn import ensemble, pipeline, preprocessing
 from sklearn.metrics import (
     average_precision_score,
@@ -55,7 +56,8 @@ class Result:
     test_recall: float
     test_mAP: float
     impurity_importance: np.ndarray
-    shapley_importance: np.ndarray
+    shapley_train_importance: np.ndarray
+    shapley_val_importance: np.ndarray
 
 
 def fit_replicate(
@@ -69,10 +71,11 @@ def fit_replicate(
 
     # random feature augmentation
     _data = Dataset(
-        randcat(data.X, n_random_features=n_random_features), y=data.y
+        randcat(data.X.values, n_random_features=n_random_features), y=data.y
     )
     test = Dataset(
-        randcat(testdata.X, n_random_features=n_random_features), y=testdata.y
+        randcat(testdata.X, n_random_features=n_random_features),
+        y=testdata.y,
     )
 
     # train/val split
@@ -80,17 +83,21 @@ def fit_replicate(
     train = Dataset(_data.X[train_ids], _data.y[train_ids])
     val = Dataset(_data.X[val_ids], _data.y[val_ids])
 
+    # print(data.X.shape)
+    # print(train.X.shape)
+    # print(val.X.shape)
+
     # standardization not needed for models without PCA...
     # # feature standardization
     # if np.std(train.X, axis=0).min() == 0:
     #     print("bad standardization!")
-    # std = preprocessing.StandardScaler()
+    std = preprocessing.StandardScaler()
 
-    # std.fit(train.X)
+    std.fit(train.X)
 
-    # train.X = std.transform(train.X)
-    # val.X = std.transform(val.X)
-    # testdata.X = std.transform(testdata.X)
+    train.X = std.transform(train.X)
+    val.X = std.transform(val.X)
+    test.X = std.transform(test.X)
 
     model.fit(train.X, train.y)
     feature_importances = model.feature_importances_
@@ -118,15 +125,28 @@ def fit_replicate(
         print("random feature impurity rank: ", impurity_rank[-1])
 
     # aggregated shapley importance
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer(train.X)
-    shap_values = shap_values[..., 1]  # just values for positive class
-    aggregated_shap = np.abs(shap_values.data).mean(axis=0)
-    shap_rank = np.argsort(aggregated_shap)[::-1]
-    if verbose:
-        print("random feature shap rank: ", shap_rank[-1], aggregated_shap[-1])
+    def shapley_importance(explainer, X):
+        shap_values = explainer(X)
+        shap_values = shap_values[..., 1]  # just values for positive class
+        return np.abs(shap_values.data).mean(axis=0)
 
-    r["shapley_importance"] = aggregated_shap
+    explainer = shap.TreeExplainer(model)
+    shap_train = shapley_importance(explainer, train.X)
+    r["shapley_train_importance"] = shap_train
+    shap_val = shapley_importance(explainer, val.X)
+    r["shapley_val_importance"] = shap_val
+
+    shap_rank_train = stats.rankdata(-shap_train)
+    shap_rank_val = stats.rankdata(-shap_val)
+    if verbose:
+        print(
+            "random feature shap rank (train): ",
+            shap_rank_train[-1],
+            shap_train[-1],
+        )
+        print(
+            "random feature shap rank (val): ", shap_rank_val[-1], shap_val[-1]
+        )
 
     return Result(**r)
 
@@ -149,7 +169,7 @@ def cv(
         print(target_key)
 
     # df, X = load_hea_dataset(subset="train", progress=progress)
-    df, X = load_citrine_dataset(subset="train", progress=progress)
+    df, X = load_citrine_dataset(subset="none", progress=progress)
     y = df[target_key].values
     data = Dataset(X, y)
 
@@ -158,20 +178,21 @@ def cv(
     y_acta = df_acta[target_key].values
     testdata = Dataset(X_acta, y_acta)
 
-    model = ensemble.RandomForestClassifier(
-        n_estimators=144,
-        max_depth=max_depth,
-        min_samples_leaf=min_samples_leaf,
-        n_jobs=4,
-        class_weight="balanced",
-    )
-
     run_id = f"{target.value}_{max_depth=}_{min_samples_leaf=}_{max_features=}"
     if progress:
         print(run_id)
 
     results = []
     for replicate in tqdm(range(replicates), disable=(not progress)):
+        model = ensemble.RandomForestClassifier(
+            n_estimators=144,
+            max_depth=max_depth,
+            min_samples_leaf=min_samples_leaf,
+            max_features=max_features,
+            n_jobs=4,
+            class_weight="balanced",
+        )
+
         results.append(fit_replicate(model, df, data, testdata))
 
     results = pd.DataFrame(results)
