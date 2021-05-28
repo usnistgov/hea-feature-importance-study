@@ -29,6 +29,18 @@ def load_hea_dataset(subset="train", progress=True):
     return df.iloc[selection], X
 
 
+def load_glass_dataset(
+    datafile="data/glassdata.csv", subset="train", progress=True
+):
+    """deciding what property to target, opening the datafile containing the training data, and pulling out the holdout set"""
+
+    df = pd.read_csv(datafile)
+
+    df, X = src.features.compute_composition_features(df, progress=progress)
+
+    return df, X
+
+
 def load_citrine_dataset(
     datafile="data/Citrine_MPEA_dataset.csv", subset="train", progress=True
 ):

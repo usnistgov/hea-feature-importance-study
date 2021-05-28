@@ -8,8 +8,11 @@ import seaborn as sns
 from scipy import stats
 import matplotlib.pyplot as plt
 
+figure_key = "multiphase_permutation_importance"
+
 replicates = 25
 results_dir = Path("data/permutation_importance")
+figure_dir = Path("reports/ranking-figures")
 results = list(filter(lambda s: "AUC" in str(s), results_dir.glob("*.csv")))
 
 # st.write(list(map(str, results.glob("*.csv"))))
@@ -26,7 +29,7 @@ rows are: `[train_NPCA_auc, val_NPCA_auc, validation_precision, validation_recal
 Feature importance results are in a separate file like:
 ```
 Drop_Replicates_Permutation_Importances_FeatureMultiphase_1_max_depth_1_min_leaf_sample_1max_features.csv
-```
+v```
 
 each row is a the feature (105 is the random feature), each column is a replicate
 """
@@ -143,23 +146,27 @@ clip = st.sidebar.selectbox("clip?", ["no", "yes"])
 stat = st.sidebar.selectbox("statistic", ["mean", "std", "min", "max"])
 
 perf = []
+all_perf = []
 rf_rank = []
 for (idx, row), r_path in zip(df.iterrows(), results):
     runs, importance = load_results(r_path)
     mean, std = runs.mean(axis=0), runs.std(axis=0)
     perf.append(mean.to_dict())
+    all_perf.append(runs)
 
     if clip == "yes":
         importance = np.clip(importance, 0, np.inf)
 
     # get feature rankings by sorting negative values
     # to rank highest feature first
-    rank = np.argsort(importance.values, axis=1)[:, ::-1].argsort(axis=1)
+    # rank = np.argsort(importance.values, axis=1)[:, ::-1].argsort(axis=1)
+    rank = stats.rankdata(-np.vstack(importance.values), axis=1)
     print(rank[:, -1].mean())
     rf_rank.append(rank[:, -1])
 
 
 perf = pd.DataFrame(perf)
+all_perf = pd.concat(all_perf)
 rf_rank = pd.DataFrame(rf_rank)
 df_res = pd.concat((df, perf), axis=1)
 df_res["random_feature_rank"] = rf_rank.mean(axis=1)
@@ -181,10 +188,14 @@ lims = ax.get_ylim()
 plt.plot([0.65, 1.0], [0.65, 1.0])
 plt.ylim(*lims)
 plt.colorbar(p, label="avg random\nfeature rank")
-plt.xlabel("train AUC")
-plt.ylabel("val AUC")
+plt.xlabel("$AUC_{train}$")
+plt.ylabel("$AUC_{val}$")
 plt.tight_layout()
-plt.savefig("permutation_AUC.tiff", bbox_inches="tight", dpi=600)
+plt.savefig(
+    figure_dir / f"{figure_key}_CV_AUC_scatter.tiff",
+    bbox_inches="tight",
+    dpi=600,
+)
 plt.tight_layout()
 
 # ax.scatter(df.max_depth, df.min_leaf_sample, c=perf.train_precision)
@@ -227,7 +238,11 @@ fig, ax = plt.subplots(figsize=(16, 4))
 sns.boxplot(x="run", y="RF Rank", data=_rankdata)
 plt.plot(_rank.mean(axis=0), color="k")
 plt.tight_layout()
-plt.savefig("permutation_boxplot.tiff", bbox_inches="tight", dpi=600)
+plt.savefig(
+    figure_dir / f"{figure_key}_permutation_boxplot.tiff",
+    bbox_inches="tight",
+    dpi=600,
+)
 st.pyplot(fig)
 
 score = _rank / 105
@@ -249,4 +264,24 @@ x = np.arange(0.001, 0.999, 0.001)
 ax.plot(x, stats.beta.pdf(x, a, b))
 st.write(rv.pdf(x))
 ax.hist(s)
+st.pyplot(fig)
+
+st.markdown("# no aggregation")
+all_perf
+
+fig, axes = plt.subplots()
+plt.scatter(
+    all_perf.train_NPCA_auc,
+    all_perf.val_NPCA_auc,
+    c=rf_rank.values.flatten(),
+    alpha=0.5,
+)
+plt.colorbar(label="random feature\npermutation rank")
+plt.xlabel(r"$AUC_{train}$")
+plt.ylabel(r"$AUC_{val}$")
+plt.savefig(
+    figure_dir / f"{figure_key}_CV_AUC_all_scatter.tiff",
+    bbox_inches="tight",
+    dpi=600,
+)
 st.pyplot(fig)
