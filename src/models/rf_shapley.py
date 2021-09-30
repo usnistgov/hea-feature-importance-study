@@ -154,9 +154,9 @@ def fit_replicate(
 @app.command()
 def cv(
     target: Target = Target.multiphase,
-    max_depth: Optional[int] = None,
+    max_depth: Optional[int] = 10,
     min_samples_leaf: int = 1,
-    max_features: Optional[int] = None,
+    max_features: Optional[int] = 10,
     replicates: int = 1,
     n_random_features: int = 1,
     progress: bool = True,

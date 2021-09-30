@@ -134,8 +134,8 @@ plt.ylabel("random feature rank")
 
 
 ```python
-task = "FCC"
-# task = "Multiphase"
+# task = "FCC"
+task = "Multiphase"
 if task == "Multiphase":
     # df = pd.read_csv("data/CV_gridsearch_2021-01-29.csv", index_col=0)
     df = pd.read_csv("data/Multiphase Remove Replicates DataFrame for Brian.csv", index_col=0)
@@ -162,14 +162,14 @@ plt.plot(pf[0], -pf[1], color="r", linestyle="--")
 # plt.plot(X[nds[0]][:,0], -X[nds[0]][:,1])
 
 plt.scatter(AUC_gap, df["val AUC"], c=df["random_feature_rank"])
-plt.scatter(AUC_gap[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
-plt.colorbar(label="random feature rank")
+# plt.scatter(AUC_gap[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
+plt.colorbar(label="random feature\nimpurity rank")
 plt.xlabel(r"$AUC_{train} - AUC_{val}$")
 
 plt.sca(axes[0])
-plt.scatter(df["train_AUC"], df["val AUC"], c=df["random_feature_rank"])
-plt.colorbar(label="random feature rank")
-plt.scatter(df["train_AUC"].iloc[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
+p = plt.scatter(df["train_AUC"], df["val AUC"], c=df["random_feature_rank"])
+plt.colorbar(p, label="random feature\nimpurity rank")
+# plt.scatter(df["train_AUC"].iloc[sel], df["val AUC"].iloc[sel], c="none", edgecolors="k")
 plt.plot((0,1), (0,1), linestyle="--", color="k", label="parity")
 
 if task == "FCC":
@@ -178,7 +178,6 @@ if task == "FCC":
 elif task == "Multiphase":
     plt.xlim(0.7, 1.0)
     plt.ylim(0.64, 0.8)
-
 
 plt.xlabel(r"$AUC_{train}$")
 plt.ylabel(r"$AUC_{val}$")
@@ -199,10 +198,11 @@ plt.scatter(df["random_feature_rank"], df["val AUC"], c=AUC_gap)
 plt.scatter(df["random_feature_rank"].iloc[sel], df["val AUC"].iloc[sel], c=AUC_gap[sel], edgecolors
 ="k")
 plt.colorbar(label=r"$AUC_{train} - AUC_{val}$")
-plt.xlabel("random feature rank")
+plt.xlabel("random feature\nimpurity rank")
 
 plt.tight_layout()
-plt.savefig(f"AUC_gap_figure_{task}.tiff", bbox_inches="tight", dpi=600)
+# plt.savefig(f"AUC_gap_figure_{task}.tiff", bbox_inches="tight", dpi=600)
+# plt.savefig(f"AUC_gap_figure_{task}_original_data.tiff", bbox_inches="tight", dpi=600)
 plt.show()
 ```
 ```python
