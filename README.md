@@ -1,4 +1,8 @@
-# HEA Phase Labeling Model
+# Aggressively optimizing validation statistics can degrade interpretability of data-driven materials models
+J. Chem. Phys. 155, 054105 (2021) 10.1063/5.0050885[https://dx.doi.org/10.1063/5.0050885]
+
+Katherine Lei,  Howie Joress, Nils Persson,  Jason R. Hattrick-Simpers, and  Brian DeCost
+
 
 
 ```python
