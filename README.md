@@ -5,6 +5,7 @@ Katherine Lei,  Howie Joress, Nils Persson,  Jason R. Hattrick-Simpers, and  Bri
 
 The principal dataset is https://github.com/CitrineInformatics/MPEA_dataset, which is included [here](data/Citrine_MPEA_dataset.csv).
 
+We also analyzed the metallic glass data reported in [10.1038/npjcompumats.2016.28](https://doi.org/10.1038/npjcompumats.2016.28), which is included [here](data/glassdata.csv), and is also available via [matminer as glass_ternary_landolt](https://hackingmaterials.lbl.gov/matminer/dataset_summary.html#glass-ternary-landolt).
 
 The cross-validation experiments can be reproduced as follows:
 
