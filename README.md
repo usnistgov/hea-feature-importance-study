@@ -3,7 +3,10 @@ J. Chem. Phys. 155, 054105 (2021) 10.1063/5.0050885[https://dx.doi.org/10.1063/5
 
 Katherine Lei,  Howie Joress, Nils Persson,  Jason R. Hattrick-Simpers, and  Brian DeCost
 
+The principal dataset is https://github.com/CitrineInformatics/MPEA_dataset, which is included [here](data/Citrine_MPEA_dataset.csv).
 
+
+The cross-validation experiments can be reproduced as follows:
 
 ```python
 ipython src/models/rf_pca_feature_importances.py
